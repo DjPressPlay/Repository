@@ -4,6 +4,7 @@ import { BlueprintResult } from './components/BlueprintResult';
 import { BlueprintData } from './types';
 import { Button } from './components/Button';
 import { ZetsuLogo } from './components/ZetsuLogo';
+import { ImageCarousel } from './components/ImageCarousel';
 
 type ViewState = 'intro' | 'quiz' | 'result';
 
@@ -93,7 +94,7 @@ function App() {
       {/* Main Content */}
       <main className="flex-1 flex flex-col items-center justify-center p-4 pt-32 pb-24 relative z-10 w-full max-w-7xl mx-auto">
         {view === 'intro' && (
-          <div className="max-w-4xl mx-auto text-center animate-fadeIn px-4 relative">
+          <div className="w-full max-w-6xl mx-auto text-center animate-fadeIn px-4 relative">
              
             {/* Demo Overlay */}
             {showDemo && (
@@ -123,13 +124,22 @@ function App() {
               Answer 8 questions to crystalize your concept and let AI render the possibility.
             </p>
             
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-6 mb-20">
               <Button onClick={startQuiz} className="w-full sm:w-auto text-lg px-12 py-5 shadow-blue-500/20">
                 Initialize Blueprint
               </Button>
               <Button onClick={openDemo} variant="ghost" className="w-full sm:w-auto text-lg px-8 py-5 border border-white/10 hover:bg-white/5">
-                View Example
+                View Manual
               </Button>
+            </div>
+
+            {/* Gallery Section */}
+            <div className="mb-24">
+              <div className="mb-10 flex flex-col items-center">
+                 <h2 className="text-sm font-mono tracking-[0.5em] text-blue-400 uppercase mb-4">Gallery of Possibilities</h2>
+                 <div className="w-24 h-px bg-gradient-to-r from-transparent via-blue-500 to-transparent"></div>
+              </div>
+              <ImageCarousel />
             </div>
 
             <div className="mt-24 grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
