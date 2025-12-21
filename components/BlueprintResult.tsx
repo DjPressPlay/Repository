@@ -26,6 +26,8 @@ export const BlueprintResult: React.FC<BlueprintResultProps> = ({
   const [isSharing, setIsSharing] = useState(false);
   const captureRef = useRef<HTMLDivElement>(null);
 
+  const COMMUNITY_URL = "https://www.skool.com/zetsuedu-7521/about?ref=abd252c4dda14e3d897063114f09cf4b";
+
   useEffect(() => {
     let isMounted = true;
     
@@ -214,46 +216,73 @@ export const BlueprintResult: React.FC<BlueprintResultProps> = ({
       </div>
 
       {/* Action Buttons (Outside capture) */}
-      <div className="mt-12 text-center pb-20 flex flex-col md:flex-row justify-center items-center gap-6">
-        {isDemo ? (
-             <Button 
-             onClick={onCloseDemo} 
-             variant="primary" 
-             className="px-10 py-4 shadow-blue-500/20 hover:shadow-blue-500/40"
-           >
-             Close Example
-           </Button>
-        ) : (
-            <>
-                <Button 
-                onClick={onReset} 
-                variant="ghost" 
-                disabled={isCapturing || isSharing}
-                className="text-idea-200 hover:text-white hover:bg-white/10 border border-white/10 px-8 py-4 rounded-full backdrop-blur-sm transition-all duration-300 hover:scale-105 w-full md:w-auto"
-                >
-                Start New Idea
-                </Button>
-                
-                <div className="flex gap-4 w-full md:w-auto">
-                    <Button 
-                    onClick={handleDownload} 
-                    variant="secondary" 
-                    isLoading={isCapturing}
-                    className="px-6 py-4 flex-1 shadow-blue-500/10 hover:shadow-blue-500/20"
-                    >
-                    {isCapturing ? 'Saving...' : 'Download'}
-                    </Button>
-                    <Button 
-                    onClick={handleShare} 
-                    variant="primary" 
-                    isLoading={isSharing}
-                    className="px-6 py-4 flex-1 shadow-blue-500/20 hover:shadow-blue-500/40"
-                    >
-                    {isSharing ? 'Sharing...' : 'Share'}
-                    </Button>
-                </div>
-            </>
+      <div className="mt-12 text-center pb-20 flex flex-col items-center gap-8">
+        
+        {/* High-Impact CTA */}
+        {!isDemo && (
+          <div className="w-full max-w-xl animate-slide-in" style={{ animationDelay: '0.4s' }}>
+            <a 
+              href={COMMUNITY_URL} 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="block group"
+            >
+              <Button 
+                className="w-full py-6 text-xl bg-gradient-to-r from-yellow-500 via-orange-500 to-yellow-600 shadow-[0_0_25px_rgba(234,179,8,0.3)] hover:shadow-[0_0_40px_rgba(234,179,8,0.5)] border-none group-hover:-translate-y-1 group-active:scale-95 transition-all duration-300"
+              >
+                <span className="flex items-center gap-3">
+                  Join and Build
+                  <svg className="w-6 h-6 transform group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                  </svg>
+                </span>
+              </Button>
+            </a>
+            <p className="mt-3 text-xs text-slate-500 font-mono tracking-widest uppercase">Take the next step in the Zetsu community</p>
+          </div>
         )}
+
+        <div className="flex flex-col md:flex-row justify-center items-center gap-6 w-full">
+          {isDemo ? (
+              <Button 
+              onClick={onCloseDemo} 
+              variant="primary" 
+              className="px-10 py-4 shadow-blue-500/20 hover:shadow-blue-500/40"
+            >
+              Close Example
+            </Button>
+          ) : (
+              <>
+                  <Button 
+                    onClick={onReset} 
+                    variant="ghost" 
+                    disabled={isCapturing || isSharing}
+                    className="text-slate-400 hover:text-white hover:bg-white/10 border border-white/10 px-8 py-4 rounded-full backdrop-blur-sm transition-all duration-300 hover:scale-105 w-full md:w-auto"
+                  >
+                    Start New Idea
+                  </Button>
+                  
+                  <div className="flex gap-4 w-full md:w-auto">
+                      <Button 
+                        onClick={handleDownload} 
+                        variant="secondary" 
+                        isLoading={isCapturing}
+                        className="px-6 py-4 flex-1 shadow-blue-500/10 hover:shadow-blue-500/20"
+                      >
+                        {isCapturing ? 'Saving...' : 'Download'}
+                      </Button>
+                      <Button 
+                        onClick={handleShare} 
+                        variant="primary" 
+                        isLoading={isSharing}
+                        className="px-6 py-4 flex-1 shadow-blue-500/20 hover:shadow-blue-500/40"
+                      >
+                        {isSharing ? 'Sharing...' : 'Share'}
+                      </Button>
+                  </div>
+              </>
+          )}
+        </div>
       </div>
 
       {/* Ambient Sparkles (Outside capture) */}
