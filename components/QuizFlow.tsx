@@ -8,7 +8,7 @@ const STEPS: StepDef[] = [
   { id: 2, field: 'type', title: 'The Type', instruction: 'What type of thing will it be?', placeholder: 'e.g., tool, game, system, service', example: 'Is it an app? A device?' },
   { id: 3, field: 'audience', title: 'Target Users', instruction: 'Who is this for?', placeholder: 'e.g., exhausted parents, indie developers', example: 'Who will use it?' },
   { id: 4, field: 'core_action', title: 'The Core Action', instruction: 'What will it do?', placeholder: 'e.g., automate grocery lists', example: 'The main verb.' },
-  { id: 5, field: 'outcome', title: 'The Outcome', instruction: 'What is it once it\'s done?', placeholder: 'e.g., a stress-free morning', example: 'The result they get.' },
+  { id: 5, field: 'outcome', title: 'The Outcome', instruction: 'What feeling does using it bring?', placeholder: 'e.g., a stress-free, fun,', example: 'The result they get.' },
   { id: 6, field: 'replaces', title: 'Future Competition', instruction: 'What is it similar to that is already out?', placeholder: 'e.g., sticky notes, hiring a distinct assistant', example: 'What does it replace?' },
   { id: 7, field: 'form', title: 'The Frame', instruction: 'What will it be once its done?', placeholder: 'e.g., mobile app, browser extension', example: 'Delivery mechanism.' },
   { id: 8, field: 'reason', title: 'Reason Why', instruction: 'Why is it better than what we have?', placeholder: 'e.g., it uses AI to predict needs', example: 'The differentiator.' },
