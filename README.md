@@ -8,9 +8,8 @@ This repository contains the source code for **Idea2Reality™**, a Zetsu EDU sy
 
 The live experience and full context for this project are hosted externally.
 
-👉 **View the live app and full documentation:**  
-[https://your-project-website-here.com
-](https://l2r-landing-811960511912.us-west1.run.app/)
+👉 **View the live app **  
+https://l2r-landing-811960511912.us-west1.run.app/
 ---
 
 ## About this repository
