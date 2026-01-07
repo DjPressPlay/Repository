@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { BlueprintData, StepDef } from '../types';
 import { Button } from './Button';
@@ -16,19 +17,15 @@ const STEPS: StepDef[] = [
 
 interface QuizFlowProps {
   onComplete: (data: BlueprintData) => void;
+  onStepChange?: (index: number) => void;
 }
 
 const Flare: React.FC = () => (
   <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-50">
     <div className="relative w-full h-full max-w-lg max-h-lg flex items-center justify-center">
-      {/* Central Flash */}
       <div className="absolute w-20 h-20 bg-blue-400 rounded-full blur-xl animate-burst opacity-0"></div>
       <div className="absolute w-16 h-16 bg-white rounded-full blur-md animate-burst opacity-0" style={{ animationDelay: '0.05s' }}></div>
-      
-      {/* Expanding Ring */}
       <div className="absolute w-32 h-32 border-2 border-blue-200 rounded-full opacity-0 animate-[burst_0.6s_ease-out_forwards] blur-[1px]"></div>
-      
-      {/* Particles */}
       {[...Array(6)].map((_, i) => (
         <div 
           key={i} 
@@ -39,16 +36,11 @@ const Flare: React.FC = () => (
           }} 
         />
       ))}
-      
-      {/* Checkpoint Text */}
-      <div className="absolute mt-32 text-blue-200 text-xs font-mono tracking-[0.3em] uppercase opacity-0 animate-[slideIn_0.4s_ease-out_reverse_forwards]">
-        Data Uplink Established
-      </div>
     </div>
   </div>
 );
 
-export const QuizFlow: React.FC<QuizFlowProps> = ({ onComplete }) => {
+export const QuizFlow: React.FC<QuizFlowProps> = ({ onComplete, onStepChange }) => {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [data, setData] = useState<Partial<BlueprintData>>({});
   const [inputValue, setInputValue] = useState('');
@@ -61,29 +53,25 @@ export const QuizFlow: React.FC<QuizFlowProps> = ({ onComplete }) => {
   const progress = ((currentStepIndex + 1) / STEPS.length) * 100;
 
   useEffect(() => {
-    // Focus input on step change after transition
     if (!isTransitioning && inputRef.current) {
       inputRef.current.focus();
     }
-  }, [currentStepIndex, isTransitioning]);
+    if (onStepChange) onStepChange(currentStepIndex);
+  }, [currentStepIndex, isTransitioning, onStepChange]);
 
   useEffect(() => {
-    // Set input value if we're going back/forward
     setInputValue(data[currentStep.field] || '');
   }, [currentStepIndex, currentStep.field, data]);
 
   const handleNext = () => {
     if (!inputValue.trim() || isTransitioning) return;
 
-    // 1. Trigger Exit Animation & Flare
     setIsTransitioning(true);
     setShowFlare(true);
 
-    // 2. Save Data
     const newData = { ...data, [currentStep.field]: inputValue };
     setData(newData);
 
-    // 3. Wait for visual effect, then advance
     setTimeout(() => {
       setShowFlare(false);
       
@@ -93,7 +81,7 @@ export const QuizFlow: React.FC<QuizFlowProps> = ({ onComplete }) => {
       } else {
         onComplete(newData as BlueprintData);
       }
-    }, 500); // Duration matches animation/flare timing
+    }, 500);
   };
 
   const handleBack = () => {
@@ -110,22 +98,17 @@ export const QuizFlow: React.FC<QuizFlowProps> = ({ onComplete }) => {
 
   return (
     <div className="w-full max-w-2xl mx-auto p-6 md:p-12 min-h-[60vh] flex flex-col justify-center relative">
-      
-      {/* Visual Flare Feedback */}
       {showFlare && <Flare />}
 
-      {/* Small Logo Top Right */}
       <div className="absolute top-0 right-0 p-2 md:p-0 md:-mt-8 opacity-40 hover:opacity-100 transition-opacity duration-500 z-10">
         <ZetsuLogo className="w-8 h-8 md:w-10 md:h-10" />
       </div>
 
-      {/* Progress Bar */}
       <div className="w-full bg-slate-800/50 h-1 mb-12 rounded-full overflow-hidden backdrop-blur-sm relative">
         <div 
           className={`h-full transition-all duration-700 ease-out shadow-[0_0_15px_rgba(59,130,246,0.8)] relative ${showFlare ? 'bg-white' : 'bg-blue-500'}`}
           style={{ width: `${progress}%` }}
         >
-          {/* Leading glow on progress bar */}
           <div className="absolute right-0 top-0 bottom-0 w-20 bg-gradient-to-l from-white to-transparent opacity-50"></div>
         </div>
       </div>
@@ -137,7 +120,6 @@ export const QuizFlow: React.FC<QuizFlowProps> = ({ onComplete }) => {
           <span className="text-slate-400">{STEPS.length}</span>
         </div>
         
-        {/* Animated Container */}
         <div key={currentStepIndex} className={`${isTransitioning ? 'animate-slide-out' : 'animate-slide-in'}`}>
           <h2 className="text-3xl md:text-4xl font-light text-white mb-8 leading-tight">
             {currentStep.instruction}

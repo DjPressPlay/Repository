@@ -1,7 +1,10 @@
+
 import { GoogleGenAI } from "@google/genai";
 import { BlueprintData } from "../types";
+import { telemetry } from "./telemetryService";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Use the recommended image generation model for basic tasks
+const MODEL_NAME = 'gemini-2.5-flash-image';
 
 const getBaseRepresentation = (form: string): string => {
   const f = form.toLowerCase();
@@ -20,11 +23,14 @@ const getBaseRepresentation = (form: string): string => {
   if (f.includes('tool') || f.includes('device') || f.includes('hardware') || f.includes('robot')) {
     return "A sleek, modern physical product device with beautiful industrial design lighting";
   }
-  // Default fallback
   return "An abstract, beautiful, glowing geometric representation of a brilliant idea";
 };
 
 export const generateBlueprintVisualization = async (data: BlueprintData): Promise<string | null> => {
+  // Always initialize the client inside the function to ensure the freshest API_KEY from environment is used
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const startTime = performance.now();
+  
   try {
     const baseRep = getBaseRepresentation(data.form);
     
@@ -48,7 +54,7 @@ export const generateBlueprintVisualization = async (data: BlueprintData): Promi
     `;
 
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash-image',
+      model: MODEL_NAME,
       contents: {
         parts: [{ text: prompt }],
       },
@@ -59,18 +65,42 @@ export const generateBlueprintVisualization = async (data: BlueprintData): Promi
       }
     });
 
+    const endTime = performance.now();
+    const latency = endTime - startTime;
+
+    let imageUrl: string | null = null;
+    // Iterate through response parts to find the image part correctly, do not assume order
     for (const part of response.candidates?.[0]?.content?.parts || []) {
       if (part.inlineData && part.inlineData.data) {
-        return `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
+        imageUrl = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
+        break;
       }
     }
     
-    // Fallback if no image found in parts (rare but possible)
-    throw new Error("No image data generated");
+    if (!imageUrl) {
+      throw new Error("No image data found in response parts.");
+    }
 
-  } catch (error) {
+    // Success Telemetry
+    telemetry.trackGeminiMetric(MODEL_NAME, latency, 'success', {
+      prompt_length: prompt.length,
+      image_format: response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.mimeType
+    });
+
+    return imageUrl;
+
+  } catch (error: any) {
+    const endTime = performance.now();
+    const latency = endTime - startTime;
+
+    // Error Telemetry
+    telemetry.trackGeminiMetric(MODEL_NAME, latency, 'error', {
+      error_message: error.message,
+      error_name: error.name,
+      status_code: error.status || 'unknown'
+    });
+
     console.error("Failed to generate blueprint visualization:", error);
-    // In a real app we might return a default "dream" image, but for now we let the UI handle the null
     return null;
   }
 };

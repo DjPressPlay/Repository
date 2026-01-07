@@ -1,3 +1,4 @@
+
 export interface BlueprintData {
   name: string;
   type: string;
@@ -23,4 +24,14 @@ export interface StepDef {
 export interface BlueprintResult {
   text: string;
   imageUrl?: string;
+}
+
+export interface WalkthroughStep {
+  id: string;
+  targetView: 'intro' | 'quiz';
+  stepIndex?: number;
+  title: string;
+  content: string;
+  // Added 'top-right' to the allowed positions as used in App.tsx
+  position: 'center' | 'bottom-right' | 'top-left' | 'top-right' | 'input-near';
 }

@@ -2,20 +2,19 @@
 <img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
 </div>
 
-# Idea2Reality™ — Zetsu EDU Project
+# Run and deploy your AI Studio app
 
-This repository contains the source code for **Idea2Reality™**, a Zetsu EDU system designed to turn raw ideas into build-ready blueprints for apps, products, and websites.
+This contains everything you need to run your app locally.
 
-The live experience and full context for this project are hosted externally.
+View your app in AI Studio: https://ai.studio/apps/drive/1zQzB8Rex53U2u-UC0IXNhzBPIkhwslno
 
-👉 **View the live app **  
-https://l2r-landing-811960511912.us-west1.run.app/
----
+## Run Locally
 
-## About this repository
+**Prerequisites:**  Node.js
 
-This repo exists to:
-- Document the technical implementation
-- Provide transparency into how the system is built
-- Support open-source review and reuse under the MIT License
-2025 Zetsumetsu EOe™ | Zetsu EDU™ | Zetsu R&D ⓒ | © 2024 - 2025 Zetsumetsu Corporation™ | Artworqq Kevin Sube | Google AI Gemini
+
+1. Install dependencies:
+   `npm install`
+2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
+3. Run the app:
+   `npm run dev`
