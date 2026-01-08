@@ -96,6 +96,13 @@ const WALKTHROUGH_STEPS: WalkthroughStep[] = [
     title: 'The Unfair Advantage',
     content: "Why is this better than anything else? Make your core differentiator undeniable.",
     position: 'top-right'
+  },
+  {
+    id: 'result-congrats',
+    targetView: 'result',
+    title: 'Blueprint Crystallized!',
+    content: "Congratulations, Architect. Your vision is now a structural reality. You can now transmit the archive via email or share it with the ZetsuEDU community.",
+    position: 'top-right'
   }
 ];
 
@@ -136,7 +143,7 @@ function App() {
   const startQuiz = () => {
     telemetry.logEvent('quiz_started');
     setView('quiz');
-    // Skip intro steps if walkthrough is active
+    // Skip intro steps if walkthrough is active and we are just starting
     if (walkthroughActive && currentWalkthroughIndex < 3) {
       setCurrentWalkthroughIndex(3);
     }
@@ -146,7 +153,14 @@ function App() {
     telemetry.logEvent('quiz_completed', { idea_name: data.name, idea_type: data.type });
     setBlueprintData(data);
     setView('result');
-    setWalkthroughActive(false);
+    
+    // If walkthrough is active, move it to the final result step
+    if (walkthroughActive) {
+      const resultStepIndex = WALKTHROUGH_STEPS.findIndex(s => s.targetView === 'result');
+      if (resultStepIndex !== -1) {
+        setCurrentWalkthroughIndex(resultStepIndex);
+      }
+    }
   };
 
   const resetApp = () => {
@@ -184,9 +198,12 @@ function App() {
     const nextIndex = currentWalkthroughIndex + 1;
     if (nextIndex < WALKTHROUGH_STEPS.length) {
       const nextStep = WALKTHROUGH_STEPS[nextIndex];
+      
+      // If we are transitioning from Intro to Quiz via walkthrough
       if (nextStep.targetView === 'quiz' && view === 'intro') {
         startQuiz();
       }
+      
       setCurrentWalkthroughIndex(nextIndex);
     } else {
       localStorage.setItem('zetsu_walkthrough_completed', 'true');
@@ -211,9 +228,11 @@ function App() {
   };
 
   const activeWalkthroughStep = WALKTHROUGH_STEPS[currentWalkthroughIndex];
+  
+  // Refined visibility logic to handle Intro, Quiz steps, and Result view
   const shouldShowWalkthrough = walkthroughActive && (
     (activeWalkthroughStep.targetView === view) && 
-    (view === 'intro' || activeWalkthroughStep.stepIndex === quizStepIndex)
+    (view === 'intro' || view === 'result' || activeWalkthroughStep.stepIndex === quizStepIndex)
   );
 
   return (

@@ -253,7 +253,7 @@ export const BlueprintResult: React.FC<BlueprintResultProps> = ({
                 </div>
                 <Button 
                   type="submit"
-                  isLoading={submitStatus === 'submitting'}
+                  isLoading={submitStatus === 'submitting' || isCapturing}
                   className="w-full py-5 shadow-blue-500/10 uppercase tracking-widest text-xs"
                 >
                   Send & Download Blueprint
@@ -266,20 +266,12 @@ export const BlueprintResult: React.FC<BlueprintResultProps> = ({
 
         {/* Action Options Row */}
         {!isDemo && (
-          <div className="w-full flex flex-col sm:flex-row gap-4">
-            <Button 
-              onClick={handleDownload} 
-              variant="secondary" 
-              isLoading={isCapturing}
-              className="flex-1 py-4 uppercase tracking-widest text-[10px] border-white/10"
-            >
-              Manual Download
-            </Button>
+          <div className="w-full flex flex-col gap-4">
             <Button 
               onClick={handleShareAndRedirect} 
               variant="primary" 
               isLoading={isSharing}
-              className="flex-1 py-4 uppercase tracking-widest text-[10px] bg-gradient-to-r from-blue-700 to-indigo-700 border-none"
+              className="w-full py-4 uppercase tracking-widest text-[10px] bg-gradient-to-r from-blue-700 to-indigo-700 border-none shadow-indigo-500/20"
             >
               Share & Join ZetsuEDU
             </Button>

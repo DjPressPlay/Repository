@@ -28,7 +28,7 @@ export interface BlueprintResult {
 
 export interface WalkthroughStep {
   id: string;
-  targetView: 'intro' | 'quiz';
+  targetView: 'intro' | 'quiz' | 'result';
   stepIndex?: number;
   title: string;
   content: string;
