@@ -20,6 +20,13 @@ const WALKTHROUGH_STEPS: WalkthroughStep[] = [
     position: 'top-right'
   },
   {
+    id: 'intro-gallery',
+    targetView: 'intro',
+    title: 'Visual Archetypes',
+    content: "Our Gallery of Possibilities showcases the range of constructs we can render. Each vector represents a distinct structural form.",
+    position: 'center'
+  },
+  {
     id: 'intro-how',
     targetView: 'intro',
     title: 'Crystallization',
@@ -96,6 +103,7 @@ function App() {
   const [view, setView] = useState<ViewState>('intro');
   const [blueprintData, setBlueprintData] = useState<BlueprintData | null>(null);
   const [showDemo, setShowDemo] = useState(false);
+  const [showAbandonModal, setShowAbandonModal] = useState(false);
   
   // Walkthrough State
   const [walkthroughActive, setWalkthroughActive] = useState(false);
@@ -113,11 +121,24 @@ function App() {
     }
   }, []);
 
+  // Browser-level exit prevention
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (view === 'quiz') {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [view]);
+
   const startQuiz = () => {
     telemetry.logEvent('quiz_started');
     setView('quiz');
-    if (walkthroughActive && currentWalkthroughIndex < 2) {
-      setCurrentWalkthroughIndex(2);
+    // Skip intro steps if walkthrough is active
+    if (walkthroughActive && currentWalkthroughIndex < 3) {
+      setCurrentWalkthroughIndex(3);
     }
   };
 
@@ -129,12 +150,27 @@ function App() {
   };
 
   const resetApp = () => {
+    // ABANDON PREVENTION: If in quiz, show popup instead of resetting
+    if (view === 'quiz') {
+      setShowAbandonModal(true);
+      return;
+    }
+
     telemetry.logEvent('app_reset', { previous_view: view });
     setBlueprintData(null);
     setView('intro');
     setShowDemo(false);
     setQuizStepIndex(0);
     setWalkthroughActive(false);
+    setShowAbandonModal(false);
+  };
+
+  const forceReset = () => {
+    setBlueprintData(null);
+    setView('intro');
+    setQuizStepIndex(0);
+    setShowAbandonModal(false);
+    telemetry.logEvent('quiz_abandoned');
   };
 
   const startGuidedTour = () => {
@@ -183,6 +219,30 @@ function App() {
   return (
     <div className="min-h-screen flex flex-col relative overflow-x-hidden selection:bg-blue-500/30">
       
+      {/* Abandonment Modal */}
+      {showAbandonModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-950/80 backdrop-blur-md animate-fadeIn">
+          <div className="bg-slate-900 border border-blue-500/30 rounded-3xl p-8 max-w-md w-full shadow-2xl relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/10 rounded-full -mr-12 -mt-12 blur-2xl"></div>
+            <h3 className="text-2xl font-black text-white mb-4">Wait, Architect.</h3>
+            <p className="text-slate-400 mb-8 leading-relaxed">
+              Don't leave yet. Turning your idea into a tangible reality blueprint only takes a few minutes. Stay to crystallize your vision.
+            </p>
+            <div className="flex flex-col gap-3">
+              <Button onClick={() => setShowAbandonModal(false)} className="w-full py-4 text-sm font-bold shadow-blue-500/20">
+                Continue Building
+              </Button>
+              <button 
+                onClick={forceReset}
+                className="text-xs font-mono text-slate-500 hover:text-white transition-colors uppercase py-3 tracking-widest"
+              >
+                Exit Anyway
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {shouldShowWalkthrough && (
         <Walkthrough 
           currentStep={activeWalkthroughStep}
@@ -213,11 +273,6 @@ function App() {
             <a href="https://www.skool.com/zetsuedu-7521/about?ref=abd252c4dda14e3d897063114f09cf4b" target="_blank" rel="noopener noreferrer" className="hidden md:flex items-center gap-2 text-sm font-mono text-blue-200 hover:text-white transition-all px-4 py-2 rounded-lg hover:bg-white/5 border border-transparent hover:border-white/10">
               <span>Join Community</span>
             </a>
-            {view !== 'intro' && (
-              <button onClick={resetApp} className="text-xs font-bold tracking-wider text-slate-300 hover:text-white transition-colors uppercase bg-white/5 hover:bg-white/10 px-4 py-2 rounded-full border border-white/10">
-                Exit
-              </button>
-            )}
           </div>
         </div>
       </header>
@@ -229,7 +284,7 @@ function App() {
               <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-xl animate-slide-in overflow-y-auto">
                 <div className="w-full max-w-6xl my-auto">
                   <BlueprintResult 
-                    data={{ name: "Cat AI", type: "service", audience: "cat people", core_action: "find cats", outcome: "locator", replaces: "cat chip", form: "app", reason: "has ai" }} 
+                    data={{ name: "Example Project", type: "service", audience: "creative teams", core_action: "visualize data", outcome: "clarity", replaces: "manual sheets", form: "dashboard", reason: "uses neural logic" }} 
                     isDemo={true}
                     demoImage="https://images.unsplash.com/photo-1480694313141-fce5e697ee25?auto=format&fit=crop&q=80&w=1000"
                     onCloseDemo={() => setShowDemo(false)}
@@ -266,38 +321,19 @@ function App() {
                  <h2 className="text-sm font-mono tracking-[0.5em] text-blue-400 uppercase mb-4">Gallery of Possibilities</h2>
                  <div className="w-24 h-px bg-gradient-to-r from-transparent via-blue-500 to-transparent"></div>
               </div>
-              <ImageCarousel />
+              <ImageCarousel id="walkthrough-gallery" />
             </div>
 
-            {/* PROCESS STAGES PLACED AT THE BOTTOM */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-32 max-w-6xl mx-auto px-4">
               {[
-                { 
-                  num: '01', 
-                  title: 'Define', 
-                  desc: 'Guided linear structure forces clear articulation.' 
-                },
-                { 
-                  num: '02', 
-                  title: 'Crystallize', 
-                  desc: 'Compiles scattered thoughts into a manifesto.' 
-                },
-                { 
-                  num: '03', 
-                  title: 'Visualize', 
-                  desc: 'Generates a high-fidelity render of the future.' 
-                }
+                { num: '01', title: 'Define', desc: 'Guided linear structure forces clear articulation.' },
+                { num: '02', title: 'Crystallize', desc: 'Compiles scattered thoughts into a manifesto.' },
+                { num: '03', title: 'Visualize', desc: 'Generates a high-fidelity render of the future.' }
               ].map((stage, i) => (
                 <div key={i} className="group relative bg-[#130d2b]/80 border border-white/5 p-12 rounded-[2.5rem] text-left hover:bg-[#1a123a] hover:border-blue-500/30 transition-all duration-500 backdrop-blur-md shadow-2xl">
-                  <div className="text-6xl font-black text-white/10 mb-8 group-hover:text-blue-500/10 transition-colors duration-500 font-mono tracking-tighter">
-                    {stage.num}
-                  </div>
-                  <h3 className="text-3xl font-black text-white mb-4 group-hover:text-blue-300 transition-colors tracking-tight">
-                    {stage.title}
-                  </h3>
-                  <p className="text-slate-400 leading-relaxed text-sm md:text-base font-light">
-                    {stage.desc}
-                  </p>
+                  <div className="text-6xl font-black text-white/10 mb-8 group-hover:text-blue-500/10 transition-colors duration-500 font-mono tracking-tighter">{stage.num}</div>
+                  <h3 className="text-3xl font-black text-white mb-4 group-hover:text-blue-300 transition-colors tracking-tight">{stage.title}</h3>
+                  <p className="text-slate-400 leading-relaxed text-sm md:text-base font-light">{stage.desc}</p>
                 </div>
               ))}
             </div>
@@ -324,44 +360,22 @@ function App() {
 
       <footer className="w-full border-t border-white/5 bg-slate-950/95 backdrop-blur-3xl relative z-20 overflow-hidden">
         <div className="max-w-7xl mx-auto px-6 pt-24 pb-16 flex flex-col items-center text-center">
-           
            <div className="mb-10 flex flex-col items-center">
               <ZetsuLogo className="w-16 h-16 mb-6" />
               <div className="flex flex-col items-center">
-                <span className="font-black text-3xl tracking-tighter text-white leading-none">
-                  ZETSU <span className="text-blue-500">EDU</span>
-                </span>
+                <span className="font-black text-3xl tracking-tighter text-white leading-none">ZETSU <span className="text-blue-500">EDU</span></span>
                 <span className="text-[0.7rem] font-black tracking-[0.4em] text-yellow-500 uppercase mt-3">ZETSUMETSU</span>
                 <span className="text-[0.55rem] tracking-[0.25em] text-blue-300/60 font-mono uppercase mt-1">THE END OF EVERYTHING</span>
               </div>
            </div>
-
            <div className="space-y-6 max-w-4xl flex flex-col items-center">
-              <a 
-                href="https://blueprint-interface-811960511912.us-west1.run.app" 
-                target="_blank" 
-                rel="noopener noreferrer" 
-                className="mb-8"
-              >
-                <Button variant="secondary" className="border-blue-500/30 text-blue-300 hover:bg-blue-500/10 uppercase tracking-[0.2em] text-xs py-4 px-10 rounded-xl">
-                  Blueprint Interface
-                </Button>
+              <a href="https://blueprint-interface-811960511912.us-west1.run.app" target="_blank" rel="noopener noreferrer" className="mb-8">
+                <Button variant="secondary" className="border-blue-500/30 text-blue-300 hover:bg-blue-500/10 uppercase tracking-[0.2em] text-xs py-4 px-10 rounded-xl">Blueprint Interface</Button>
               </a>
-
-              <p className="text-xs md:text-sm font-black text-slate-300 tracking-[0.2em] uppercase">
-                © 2026 ZETSUMETSU CORPORATION™
-              </p>
-              <p className="text-[10px] md:text-xs font-mono text-slate-500 tracking-widest uppercase max-w-3xl leading-relaxed">
-                ALL SYSTEMS, PRODUCTS, AND MATERIALS ARE THE PROPERTY OF ZETSUMETSU CORPORATION & GOOGLE GEMINI.
-              </p>
-              <p className="text-[10px] md:text-xs text-red-500/60 uppercase tracking-[0.3em] font-mono font-bold">
-                UNAUTHORIZED USE OR REPRODUCTION IS PROHIBITED.
-              </p>
-              
+              <p className="text-xs md:text-sm font-black text-slate-300 tracking-[0.2em] uppercase">© 2026 ZETSUMETSU CORPORATION™</p>
+              <p className="text-[10px] md:text-xs font-mono text-slate-500 tracking-widest uppercase max-w-3xl leading-relaxed">ALL SYSTEMS, PRODUCTS, AND MATERIALS ARE THE PROPERTY OF ZETSUMETSU CORPORATION & GOOGLE GEMINI.</p>
               <div className="pt-10 mt-10 border-t border-white/5 w-full">
-                <p className="text-[9px] md:text-[10px] font-mono text-slate-600 tracking-[0.2em]">
-                  Zetsumetsu EOe™ | Idea 2 Reality™ | © 2024 - 2026 Zetsumetsu Corporation™
-                </p>
+                <p className="text-[9px] md:text-[10px] font-mono text-slate-600 tracking-[0.2em]">Zetsumetsu EOe™ | Idea 2 Reality™ | © 2024 - 2026 Zetsumetsu Corporation™</p>
               </div>
            </div>
         </div>

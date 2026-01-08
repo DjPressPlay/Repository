@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useRef } from 'react';
 import { BlueprintData } from '../types';
 import { generateBlueprintVisualization } from '../services/geminiService';
@@ -24,14 +25,18 @@ export const BlueprintResult: React.FC<BlueprintResultProps> = ({
   const [showContent, setShowContent] = useState(false);
   const [isCapturing, setIsCapturing] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
+  
+  // ZetsuEDU Transmission State
+  const [userEmail, setUserEmail] = useState('');
+  const [submitStatus, setSubmitStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
+  
   const captureRef = useRef<HTMLDivElement>(null);
 
   const COMMUNITY_URL = "https://www.skool.com/zetsuedu-7521/about?ref=abd252c4dda14e3d897063114f09cf4b";
+  const FORMSPREE_URL = "https://formspree.io/f/xgovdnap";
 
   useEffect(() => {
     let isMounted = true;
-    
-    // Trigger animation
     setTimeout(() => setShowContent(true), 100);
 
     if (isDemo) {
@@ -51,23 +56,18 @@ export const BlueprintResult: React.FC<BlueprintResultProps> = ({
     };
 
     fetchImage();
-
     return () => { isMounted = false; };
   }, [data, isDemo, demoImage]);
 
   const generateImageBlob = async (): Promise<Blob | null> => {
     if (!captureRef.current) return null;
-    
-    // Small delay to ensure render is stable
     await new Promise(resolve => setTimeout(resolve, 50));
-
     const canvas = await html2canvas(captureRef.current, {
         backgroundColor: '#020617',
         scale: 2,
         useCORS: true,
         logging: false,
     });
-
     return new Promise((resolve) => {
         canvas.toBlob((blob) => resolve(blob), 'image/png');
     });
@@ -78,7 +78,6 @@ export const BlueprintResult: React.FC<BlueprintResultProps> = ({
     try {
       const blob = await generateImageBlob();
       if (!blob) throw new Error("Failed to generate image");
-
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
@@ -88,19 +87,54 @@ export const BlueprintResult: React.FC<BlueprintResultProps> = ({
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
     } catch (error) {
-      console.error("Screenshot capture failed:", error);
-      alert("Could not generate screenshot. Please try again.");
+      console.error("Download failed:", error);
     } finally {
       setIsCapturing(false);
     }
   };
 
-  const handleShare = async () => {
+  const handleSendAndDownload = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!userEmail || submitStatus === 'submitting') return;
+
+    setSubmitStatus('submitting');
+    try {
+      const response = await fetch(FORMSPREE_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({
+          email: userEmail,
+          _subject: `New Idea Blueprint: ${data.name}`,
+          ideaName: data.name,
+          ideaType: data.type,
+          audience: data.audience,
+          coreAction: data.core_action,
+          outcome: data.outcome,
+          replaces: data.replaces,
+          form: data.form,
+          reason: data.reason,
+          timestamp: new Date().toISOString(),
+        })
+      });
+
+      if (response.ok) {
+        setSubmitStatus('success');
+        // Trigger download automatically after send
+        await handleDownload();
+      } else {
+        throw new Error('Failed to submit');
+      }
+    } catch (error) {
+      console.error("Transmission failed:", error);
+      setSubmitStatus('error');
+    }
+  };
+
+  const handleShareAndRedirect = async () => {
     setIsSharing(true);
     try {
         const blob = await generateImageBlob();
         if (!blob) throw new Error("Failed to generate image");
-
         const file = new File([blob], `${data.name}_Blueprint.png`, { type: 'image/png' });
 
         if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
@@ -110,12 +144,19 @@ export const BlueprintResult: React.FC<BlueprintResultProps> = ({
                 files: [file]
             });
         } else {
-            // Fallback for desktop/unsupported browsers
-            alert("Sharing is not supported on this device or browser. Downloading instead.");
-            handleDownload();
+            // Fallback for desktop: Copy current URL as "Link" then proceed to redirect
+            await navigator.clipboard.writeText(window.location.href);
+            alert("Link copied to clipboard. Redirecting to ZetsuEDU Community...");
         }
+        
+        // Redirect to school site after share as requested
+        setTimeout(() => {
+          window.location.href = COMMUNITY_URL;
+        }, 1000);
     } catch (error) {
         console.error("Share failed:", error);
+        // Still redirect if share was cancelled or failed but user clicked
+        window.location.href = COMMUNITY_URL;
     } finally {
         setIsSharing(false);
     }
@@ -124,18 +165,16 @@ export const BlueprintResult: React.FC<BlueprintResultProps> = ({
   return (
     <div className={`w-full max-w-6xl mx-auto p-4 md:p-6 transition-all duration-1000 ease-out ${showContent ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-20'}`}>
       
-      {/* Capture Container: This entire block gets screenshotted */}
+      {/* Blueprint Visual Artifact */}
       <div 
         ref={captureRef} 
         className="relative bg-slate-950 rounded-[2.5rem] p-8 md:p-16 overflow-hidden border border-white/5 shadow-2xl"
       >
-        {/* Background Decorative Elements (Inside capture) */}
         <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-[#1e1b4b] to-[#020617] -z-10"></div>
         <div className="absolute top-[-20%] right-[-10%] w-[60%] h-[60%] bg-blue-900/20 rounded-full blur-[120px] -z-10"></div>
         <div className="absolute bottom-[-20%] left-[-10%] w-[60%] h-[60%] bg-purple-900/20 rounded-full blur-[120px] -z-10"></div>
         <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.05] -z-10"></div>
 
-        {/* Header Section */}
         <div className="text-center mb-12 relative z-10">
           <h2 className="text-idea-300 font-medium text-sm tracking-[0.4em] uppercase mb-6 opacity-90">Idea Crystallized</h2>
           <h1 className="text-5xl md:text-7xl font-black text-white mb-4 drop-shadow-2xl tracking-tight leading-tight">{data.name}</h1>
@@ -143,38 +182,21 @@ export const BlueprintResult: React.FC<BlueprintResultProps> = ({
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center relative z-10">
-          
-          {/* Text Area */}
-          <div className="relative group h-full flex flex-col justify-center">
-            <div className="bg-white/5 border border-white/10 p-8 md:p-10 rounded-3xl backdrop-blur-md relative overflow-hidden h-full">
-              
-              <h3 className="text-2xl text-transparent bg-clip-text bg-gradient-to-r from-idea-200 to-blue-200 font-semibold mb-8">The Concept</h3>
-              
-              <div className="space-y-5 text-lg text-slate-300 font-light leading-relaxed">
-                <p>
-                  A <span className="text-white font-medium border-b border-idea-500/50 pb-0.5">{data.type}</span> created for <span className="text-idea-200 font-medium">{data.audience}</span>.
-                </p>
-                <p>
-                  Designed to <span className="text-white font-medium">{data.core_action}</span>.
-                </p>
-                <p>
-                  Resulting in <span className="text-idea-200 font-medium">{data.outcome}</span>.
-                </p>
-                <p>
-                  It moves beyond <span className="text-slate-500 line-through decoration-idea-800 decoration-2">{data.replaces}</span>.
-                </p>
-                <p>
-                  Existing as <span className="text-white font-medium">{data.form}</span>.
-                </p>
-                <div className="pt-6 mt-6 border-t border-white/10">
-                  <span className="text-xs uppercase tracking-widest text-slate-500 mb-2 block font-semibold">Why it matters</span>
-                  <p className="text-base text-white/90 italic">"{data.reason}"</p>
-                </div>
+          <div className="bg-white/5 border border-white/10 p-8 md:p-10 rounded-3xl backdrop-blur-md">
+            <h3 className="text-2xl text-transparent bg-clip-text bg-gradient-to-r from-idea-200 to-blue-200 font-semibold mb-8">The Concept</h3>
+            <div className="space-y-5 text-lg text-slate-300 font-light leading-relaxed">
+              <p>A <span className="text-white font-medium border-b border-idea-500/50 pb-0.5">{data.type}</span> created for <span className="text-idea-200 font-medium">{data.audience}</span>.</p>
+              <p>Designed to <span className="text-white font-medium">{data.core_action}</span>.</p>
+              <p>Resulting in <span className="text-idea-200 font-medium">{data.outcome}</span>.</p>
+              <p>It moves beyond <span className="text-slate-500 line-through decoration-idea-800 decoration-2">{data.replaces}</span>.</p>
+              <p>Existing as <span className="text-white font-medium">{data.form}</span>.</p>
+              <div className="pt-6 mt-6 border-t border-white/10">
+                <span className="text-xs uppercase tracking-widest text-slate-500 mb-2 block font-semibold">Why it matters</span>
+                <p className="text-base text-white/90 italic">"{data.reason}"</p>
               </div>
             </div>
           </div>
 
-          {/* AI Visualization */}
           <div className="relative aspect-square w-full rounded-3xl overflow-hidden bg-slate-900/50 border border-white/10 shadow-2xl flex items-center justify-center group ring-1 ring-white/10">
             {loading ? (
               <div className="flex flex-col items-center justify-center p-8 text-center z-10">
@@ -183,121 +205,109 @@ export const BlueprintResult: React.FC<BlueprintResultProps> = ({
                   <div className="absolute inset-2 bg-blue-500/30 rounded-full animate-pulse"></div>
                   <div className="absolute inset-0 border-2 border-t-idea-400 border-r-transparent border-b-blue-400 border-l-transparent rounded-full animate-spin"></div>
                 </div>
-                <p className="text-idea-200 font-medium tracking-widest text-xs animate-pulse">DREAMING...</p>
+                <p className="text-idea-200 font-medium tracking-widest text-xs animate-pulse uppercase">Dreaming...</p>
               </div>
             ) : imageUrl ? (
-              <img 
-                src={imageUrl} 
-                alt="AI Generated Idea" 
-                className="w-full h-full object-cover"
-                crossOrigin="anonymous" 
-              />
+              <img src={imageUrl} alt="AI Visual" className="w-full h-full object-cover" crossOrigin="anonymous" />
             ) : (
-              <div className="text-slate-500 text-center p-8">
-                <p className="mb-2">Visualization Unavailable</p>
-              </div>
+              <div className="text-slate-500 text-center p-8"><p>Visualization Unavailable</p></div>
             )}
-            
-            {/* Overlay gradient for depth */}
             <div className="absolute inset-0 bg-gradient-to-t from-slate-950/40 to-transparent pointer-events-none"></div>
           </div>
         </div>
 
-        {/* Footer for Screenshot */}
         <div className="mt-12 pt-8 border-t border-white/10 flex justify-between items-end opacity-60">
             <div className="flex flex-col gap-1">
                 <span className="text-[10px] font-bold text-yellow-500 tracking-[0.2em] uppercase">IDEA 2 REALITY SYSTEM</span>
-                <span className="text-[10px] font-mono text-slate-400 tracking-wider">STRUCTURED INTELLIGENCE</span>
+                <span className="text-[10px] font-mono text-slate-400 tracking-wider uppercase">Structured Intelligence</span>
             </div>
-             <div className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">
-                {new Date().toLocaleDateString()} • Blueprint
-            </div>
+            <div className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">{new Date().toLocaleDateString()}</div>
         </div>
       </div>
 
-      {/* Action Buttons (Outside capture) */}
-      <div className="mt-12 text-center pb-20 flex flex-col items-center gap-8">
+      {/* Streamlined Action Area */}
+      <div className="mt-16 max-w-xl mx-auto flex flex-col items-center gap-10">
         
-        {/* High-Impact CTA */}
+        {/* Email Input + Send Action */}
         {!isDemo && (
-          <div className="w-full max-w-xl animate-slide-in" style={{ animationDelay: '0.4s' }}>
-            <a 
-              href={COMMUNITY_URL} 
-              target="_blank" 
-              rel="noopener noreferrer" 
-              className="block group"
-            >
-              <Button 
-                className="w-full py-6 text-xl bg-gradient-to-r from-yellow-500 via-orange-500 to-yellow-600 shadow-[0_0_25px_rgba(234,179,8,0.3)] hover:shadow-[0_0_40px_rgba(234,179,8,0.5)] border-none group-hover:-translate-y-1 group-active:scale-95 transition-all duration-300"
-              >
-                <span className="flex items-center gap-3">
-                  Join and Build
-                  <svg className="w-6 h-6 transform group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                  </svg>
-                </span>
-              </Button>
-            </a>
-            <p className="mt-3 text-xs text-slate-500 font-mono tracking-widest uppercase">Take the next step in the Zetsu community</p>
+          <div className="w-full">
+            {submitStatus === 'success' ? (
+              <div className="py-6 px-8 bg-blue-500/10 border border-blue-500/20 rounded-2xl text-blue-300 text-center font-medium animate-slide-in flex items-center justify-center gap-3">
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                Sent & Downloaded Successfully
+              </div>
+            ) : (
+              <form onSubmit={handleSendAndDownload} className="flex flex-col gap-4">
+                <div className="flex flex-col gap-1">
+                   <label className="text-[10px] font-mono uppercase tracking-[0.2em] text-slate-500 ml-4">Recipient Archive Email</label>
+                   <input 
+                     type="email" 
+                     required
+                     placeholder="Enter your email"
+                     value={userEmail}
+                     onChange={(e) => setUserEmail(e.target.value)}
+                     className="w-full bg-slate-900/50 border border-white/10 rounded-2xl px-6 py-4 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/50 transition-all font-light"
+                   />
+                </div>
+                <Button 
+                  type="submit"
+                  isLoading={submitStatus === 'submitting'}
+                  className="w-full py-5 shadow-blue-500/10 uppercase tracking-widest text-xs"
+                >
+                  Send & Download Blueprint
+                </Button>
+              </form>
+            )}
+            {submitStatus === 'error' && <p className="mt-3 text-center text-xs text-red-400 animate-pulse">Transmission failed. Try again.</p>}
           </div>
         )}
 
-        <div className="flex flex-col md:flex-row justify-center items-center gap-6 w-full">
-          {isDemo ? (
-              <Button 
-              onClick={onCloseDemo} 
-              variant="primary" 
-              className="px-10 py-4 shadow-blue-500/20 hover:shadow-blue-500/40"
+        {/* Action Options Row */}
+        {!isDemo && (
+          <div className="w-full flex flex-col sm:flex-row gap-4">
+            <Button 
+              onClick={handleDownload} 
+              variant="secondary" 
+              isLoading={isCapturing}
+              className="flex-1 py-4 uppercase tracking-widest text-[10px] border-white/10"
             >
-              Close Example
+              Manual Download
             </Button>
-          ) : (
-              <>
-                  <Button 
-                    onClick={onReset} 
-                    variant="ghost" 
-                    disabled={isCapturing || isSharing}
-                    className="text-slate-400 hover:text-white hover:bg-white/10 border border-white/10 px-8 py-4 rounded-full backdrop-blur-sm transition-all duration-300 hover:scale-105 w-full md:w-auto"
-                  >
-                    Start New Idea
-                  </Button>
-                  
-                  <div className="flex gap-4 w-full md:w-auto">
-                      <Button 
-                        onClick={handleDownload} 
-                        variant="secondary" 
-                        isLoading={isCapturing}
-                        className="px-6 py-4 flex-1 shadow-blue-500/10 hover:shadow-blue-500/20"
-                      >
-                        {isCapturing ? 'Saving...' : 'Download'}
-                      </Button>
-                      <Button 
-                        onClick={handleShare} 
-                        variant="primary" 
-                        isLoading={isSharing}
-                        className="px-6 py-4 flex-1 shadow-blue-500/20 hover:shadow-blue-500/40"
-                      >
-                        {isSharing ? 'Sharing...' : 'Share'}
-                      </Button>
-                  </div>
-              </>
-          )}
-        </div>
+            <Button 
+              onClick={handleShareAndRedirect} 
+              variant="primary" 
+              isLoading={isSharing}
+              className="flex-1 py-4 uppercase tracking-widest text-[10px] bg-gradient-to-r from-blue-700 to-indigo-700 border-none"
+            >
+              Share & Join ZetsuEDU
+            </Button>
+          </div>
+        )}
+
+        {isDemo ? (
+          <Button onClick={onCloseDemo} variant="primary" className="px-10 py-4 shadow-blue-500/20">Close Manual</Button>
+        ) : (
+          <button onClick={onReset} className="text-[10px] font-mono uppercase tracking-[0.3em] text-slate-500 hover:text-white transition-colors py-4">
+            Reset Reality Engine
+          </button>
+        )}
       </div>
 
-      {/* Ambient Sparkles (Outside capture) */}
+      {/* Background Ambience */}
       {!loading && imageUrl && (
-        <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
-          {[...Array(15)].map((_, i) => (
+        <div className="fixed inset-0 pointer-events-none overflow-hidden -z-10">
+          {[...Array(12)].map((_, i) => (
             <div 
               key={i}
               className="absolute bg-white rounded-full opacity-0 animate-float"
               style={{
                 top: `${Math.random() * 100}%`,
                 left: `${Math.random() * 100}%`,
-                width: `${Math.random() * 3 + 1}px`,
-                height: `${Math.random() * 3 + 1}px`,
-                boxShadow: `0 0 ${Math.random() * 10 + 5}px ${Math.random() > 0.5 ? '#d946ef' : '#38bdf8'}`,
+                width: `${Math.random() * 2 + 1}px`,
+                height: `${Math.random() * 2 + 1}px`,
+                boxShadow: `0 0 10px ${Math.random() > 0.5 ? '#d946ef' : '#38bdf8'}`,
                 animationDelay: `${Math.random() * 5}s`,
                 animationDuration: `${Math.random() * 10 + 10}s`
               }}
